@@ -1,1 +1,1 @@
-# Programming Scripts for "Partly Conditional Modeling of the Restricted Mean Survival Time for Landmark Analysis"
+# Programming Scripts for "Dynamic Risk Assessment by Landmark Modeling of the Restricted Mean Survival Time"
