@@ -90,99 +90,59 @@ generateStackedData <- function(dat, datA, IDname, TrtInelname, Ename,
 }
 
 # point estimates and inference of model parameters
-analyzeStackedData <- function(dat, dat.stacked, Znames.TI, Znames.TV, method, link, stratified){
-  if (method == "link"){
-    dat.stacked$Wgee <- dat.stacked$W * dat.stacked$deltaYik
-    if (link == "linear"){
-      family = gaussian(link = "identity")
-    }
-    else if (link == "log"){
-      family = poisson(link = "log")
-    }
-    f <- as.formula(paste("Yik ~ ", paste(Znames.TI, collapse = " + "), " + (", paste(Znames.TV, collapse = " + "), ") * factor(CS)", sep = ""))
-    betahat <- coef(suppressWarnings(glm(f, data = dat.stacked, 
-                                         family = family, weights = Wgee)))
-    
+analyzeStackedData <- function(dat, dat.stacked, Znames.TI, Znames.TV, method){
+  dat.stacked$Wt <- dat.stacked$W * dat.stacked$deltaYik
+  if (method == "add"){
+    Zbar <- t(sapply(split(dat.stacked, dat.stacked$CS), function(x){colSums(x[, c(Znames.TI, Znames.TV)] * x$Wt)/sum(x$Wt)}))
+    dat.temp <- dat.stacked
+    dat.temp[, c(Znames.TI, Znames.TV)] = dat.stacked[, c(Znames.TI, Znames.TV)] - Zbar[dat.temp$CS, ]
+    betahat <- coef(lm(as.formula(paste("Yik ~ ", paste(c(Znames.TI, Znames.TV), collapse = " + "), " - 1", sep = "")), 
+                       dat = dat.temp, weights = Wt))
+    Zres <- dat.temp[, c(Znames.TI, Znames.TV)]
     A <- matrix(0, ncol = length(betahat), nrow = length(betahat))
+    for (i in 1:nrow(dat.stacked)){
+      A = A + t(as.matrix(Zres[i, ])) %*% as.matrix(Zres[i, ]) * dat.stacked$Wt[i] / nrow(dat)
+    }
+    dat.temp$Yres <- dat.stacked$Yik - as.matrix(dat.stacked[, c(Znames.TI, Znames.TV)]) %*% betahat
+    mu0k <- sapply(split(dat.temp, dat.temp$CS), function(x){weighted.mean(x$Yres, x$Wt)})
     B <- matrix(0, ncol = length(betahat), nrow = length(betahat))
-    Z <- model.matrix(f, data = dat.stacked)
-    if (link == "linear"){
-      for (i in 1:nrow(dat.stacked)){
-        Zik <- as.matrix(Z[i, ])
-        A <- A + dat.stacked$W[i] * dat.stacked$deltaYik[i] * Zik %*% t(Zik)
-      }
-      e <- Z * as.vector(dat.stacked$W * dat.stacked$deltaYik * (dat.stacked$Yik - as.matrix(Z) %*% betahat))
-    }
-    else if (link == "log"){
-      for (i in 1:nrow(dat.stacked)){
-        Zik <- as.matrix(Z[i, ])
-        A <- A + dat.stacked$W[i] * dat.stacked$deltaYik[i] * Zik %*% t(Zik) * as.numeric(exp(t(betahat) %*% Zik))
-      }
-      e <- Z * as.vector(dat.stacked$W * dat.stacked$deltaYik * (dat.stacked$Yik - exp(as.matrix(Z) %*% betahat)))
-    }
+    e <- Zres * as.vector(dat.stacked$Wt * (dat.stacked$Yik - mu0k[dat.stacked$CS] - as.matrix(dat.stacked[, c(Znames.TI, Znames.TV)]) %*% betahat))
     E <- cbind.data.frame("ID" = dat.stacked$WL_ID_CODE, e)
     Ei <- aggregate(. ~ ID, E, sum)
     for (i in 1:nrow(Ei)){
       ei <- t(Ei[i, -1])
-      B <- B + ei %*% t(ei)
+      B <- B + ei %*% t(ei) / nrow(dat)
     }
-    var <- diag(solve(A) %*% B %*% t(solve(A)))
+    var <- diag(solve(A) %*% B %*% t(solve(A))) / nrow(dat)
   }
-  
-  else if (method == "stratified"){
-    dat.stacked$Wt <- dat.stacked$W * dat.stacked$deltaYik
-    if (stratified == "add"){
-      Zbar <- t(sapply(split(dat.stacked, dat.stacked$CS), function(x){colSums(x[, c(Znames.TI, Znames.TV)] * x$Wt)/sum(x$Wt)}))
-      dat.temp <- dat.stacked
-      dat.temp[, c(Znames.TI, Znames.TV)] = dat.stacked[, c(Znames.TI, Znames.TV)] - Zbar[dat.temp$CS, ]
-      betahat <- coef(lm(as.formula(paste("Yik ~ ", paste(c(Znames.TI, Znames.TV), collapse = " + "), " - 1", sep = "")), 
-                         dat = dat.temp, weights = Wt))
-      Zres <- dat.temp[, c(Znames.TI, Znames.TV)]
-      A <- matrix(0, ncol = length(betahat), nrow = length(betahat))
-      for (i in 1:nrow(dat.stacked)){
-        A = A + t(as.matrix(Zres[i, ])) %*% as.matrix(Zres[i, ]) * dat.stacked$Wt[i] / nrow(dat)
-      }
-      dat.temp$Yres <- dat.stacked$Yik - as.matrix(dat.stacked[, c(Znames.TI, Znames.TV)]) %*% betahat
-      mu0k <- sapply(split(dat.temp, dat.temp$CS), function(x){weighted.mean(x$Yres, x$Wt)})
-      B <- matrix(0, ncol = length(betahat), nrow = length(betahat))
-      e <- Zres * as.vector(dat.stacked$Wt * (dat.stacked$Yik - mu0k[dat.stacked$CS] - as.matrix(dat.stacked[, c(Znames.TI, Znames.TV)]) %*% betahat))
-      E <- cbind.data.frame("ID" = dat.stacked$WL_ID_CODE, e)
-      Ei <- aggregate(. ~ ID, E, sum)
-      for (i in 1:nrow(Ei)){
-        ei <- t(Ei[i, -1])
-        B <- B + ei %*% t(ei) / nrow(dat)
-      }
-      var <- diag(solve(A) %*% B %*% t(solve(A))) / nrow(dat)
+  else if (stratified == "multi"){
+    dat.stacked$W.new <- dat.stacked$Wt * dat.stacked$Yik
+    dat.temp <- dat.stacked
+    dat.temp <- dat.temp[!(is.na(dat.temp$W.new)|dat.temp$W.new == 0), ]
+    dat.temp$deltaX.new <- 1
+    dat.temp$X.new <- 1
+    mod.multi <- coxph(as.formula(paste("Surv(X.new, deltaX.new) ~ ", paste(c(Znames.TI, Znames.TV), collapse = " + "), " + offset(-log(Yik)) + strata(CS)", sep = "")), 
+                       data = dat.temp, weights = W.new, ties = "breslow", id = WL_ID_CODE)
+    betahat <- coefficients(mod.multi)
+    Z <- dat.stacked[, c(Znames.TI, Znames.TV)]
+    Zbar <- dat.stacked$Wt * exp(as.matrix(Z) %*% betahat)
+    S0 <- tapply(Zbar, as.factor(dat.stacked$CS), sum)
+    S1 <- aggregate(Z * Zbar, by = list(dat.stacked$CS), sum)[, -1]
+    S2 <- aggregate(data.frame(t(apply(as.matrix(Z), 1, tcrossprod))) * Zbar, by = list(dat.stacked$CS), sum)[, -1]
+    mu0k <- tapply(dat.stacked$W.new, as.factor(dat.stacked$CS), sum)/S0
+    Sbar <- S1/S0
+    Sk <- S2/S0 - t(apply(as.matrix(Sbar), 1, tcrossprod))
+    A <- matrix(colSums(aggregate(Sk[dat.stacked$CS, ] * dat.stacked$W.new, by = list(dat.stacked$WL_ID_CODE), sum)[, -1]) / nrow(dat), 
+                nrow = length(betahat), ncol = length(betahat))
+    B <- matrix(0, ncol = length(betahat), nrow = length(betahat))
+    e <- dat.stacked$Wt * (Z - Sbar[dat.stacked$CS, ]) * (dat.stacked$Yik - mu0k[dat.stacked$CS] * as.vector(exp(as.matrix(Z) %*% betahat)))
+    E <- cbind.data.frame("ID" = dat.stacked$WL_ID_CODE, e)
+    Ei <- aggregate(. ~ ID, E, sum)
+    for (i in 1:nrow(Ei)){
+      ei <- t(Ei[i, -1])
+      B <- B + ei %*% t(ei) / nrow(dat)
     }
-    else if (stratified == "multi"){
-      dat.stacked$W.new <- dat.stacked$Wt * dat.stacked$Yik
-      dat.temp <- dat.stacked
-      dat.temp <- dat.temp[!(is.na(dat.temp$W.new)|dat.temp$W.new == 0), ]
-      dat.temp$deltaX.new <- 1
-      dat.temp$X.new <- 1
-      mod.multi <- coxph(as.formula(paste("Surv(X.new, deltaX.new) ~ ", paste(c(Znames.TI, Znames.TV), collapse = " + "), " + offset(-log(Yik)) + strata(CS)", sep = "")), 
-                         data = dat.temp, weights = W.new, ties = "breslow", id = WL_ID_CODE)
-      betahat <- coefficients(mod.multi)
-      Z <- dat.stacked[, c(Znames.TI, Znames.TV)]
-      Zbar <- dat.stacked$Wt * exp(as.matrix(Z) %*% betahat)
-      S0 <- tapply(Zbar, as.factor(dat.stacked$CS), sum)
-      S1 <- aggregate(Z * Zbar, by = list(dat.stacked$CS), sum)[, -1]
-      S2 <- aggregate(data.frame(t(apply(as.matrix(Z), 1, tcrossprod))) * Zbar, by = list(dat.stacked$CS), sum)[, -1]
-      mu0k <- tapply(dat.stacked$W.new, as.factor(dat.stacked$CS), sum)/S0
-      Sbar <- S1/S0
-      Sk <- S2/S0 - t(apply(as.matrix(Sbar), 1, tcrossprod))
-      A <- matrix(colSums(aggregate(Sk[dat.stacked$CS, ] * dat.stacked$W.new, by = list(dat.stacked$WL_ID_CODE), sum)[, -1]) / nrow(dat), 
-                  nrow = length(betahat), ncol = length(betahat))
-      B <- matrix(0, ncol = length(betahat), nrow = length(betahat))
-      e <- dat.stacked$Wt * (Z - Sbar[dat.stacked$CS, ]) * (dat.stacked$Yik - mu0k[dat.stacked$CS] * as.vector(exp(as.matrix(Z) %*% betahat)))
-      E <- cbind.data.frame("ID" = dat.stacked$WL_ID_CODE, e)
-      Ei <- aggregate(. ~ ID, E, sum)
-      for (i in 1:nrow(Ei)){
-        ei <- t(Ei[i, -1])
-        B <- B + ei %*% t(ei) / nrow(dat)
-      }
-      var <- diag(solve(A) %*% B %*% t(solve(A))) / nrow(dat)
-    }
+    var <- diag(solve(A) %*% B %*% t(solve(A))) / nrow(dat)
   }
   
   p <- pnorm(-abs(betahat/sqrt(var)), mean = 0, sd = 1, lower.tail = TRUE) * 2
@@ -193,12 +153,12 @@ analyzeStackedData <- function(dat, dat.stacked, Znames.TI, Znames.TV, method, l
 analyzeData <- function(dat = study0, datA = hist1, 
                         IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
                         ZCnames, ZTnames.TI, ZTnames.TV, Znames.TI, Znames.TV, 
-                        CSk, L, method, link, stratified){
+                        CSk, L, method){
   
   dat.stacked <- generateStackedData(dat, datA, IDname, TrtInelname, Ename, 
                                      ZCnames, ZTnames.TI, ZTnames.TV, Znames.TI, Znames.TV, 
                                      CSk, L)
-  res <- analyzeStackedData(dat, dat.stacked, Znames.TI, Znames.TV, method, link, stratified)
+  res <- analyzeStackedData(dat, dat.stacked, Znames.TI, Znames.TV, method)
   
   return(res)
 }
@@ -206,30 +166,26 @@ analyzeData <- function(dat = study0, datA = hist1,
 sum.dts <- summary(c(hist1$dt1, hist1$dt2))
 
 # monthly
-# day <- c("1/31/", "2/28/", "3/31/", "4/30/", "5/31/", "6/30/", "7/31/", "8/31/", "9/30/", "10/31/", "11/30/", "12/31/")
-# year <- 2010:(2010+floor((sum.dts["Max."]-sum.dts["Min."]+1)/365)-1-1)
-# CSk <- as.Date(do.call(paste0, expand.grid(day, year)), format = "%m/%d/%Y") - 
-#   as.Date("01/01/1960", format = "%m/%d/%Y")
-# res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-#                        ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-#                        CSk = CSk, L = 1*365, method = "stratified", stratified = "add")
-# write.csv(res.add, "analysis_add_month.csv")
-# res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-#                        ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-#                        CSk = CSk, L = 30, method = "stratified", stratified = "add")
-# write.csv(res.add, "analysis_add_month_1m.csv")
-# res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-#                        ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-#                        CSk = CSk, L = 90, method = "stratified", stratified = "add")
-# write.csv(res.add, "analysis_add_month_3m_Sik.csv")
-# res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-#                        ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-#                        CSk = CSk, L = 180, method = "stratified", stratified = "add")
-# write.csv(res.add, "analysis_add_month_6m.csv")
-# res.multi <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-#                          ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-#                          CSk = CSk, L = 1*365, method = "stratified", stratified = "multi")
-# write.csv(res.multi, "analysis_multi_month.csv")
+day <- c("1/31/", "2/28/", "3/31/", "4/30/", "5/31/", "6/30/", "7/31/", "8/31/", "9/30/", "10/31/", "11/30/", "12/31/")
+year <- 2010:(2010+floor((sum.dts["Max."]-sum.dts["Min."]+1)/365)-1-1)
+CSk <- as.Date(do.call(paste0, expand.grid(day, year)), format = "%m/%d/%Y") - 
+  as.Date("01/01/1960", format = "%m/%d/%Y")
+res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
+                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
+                       CSk = CSk, L = 1*365, method = "add")
+write.csv(res.add, "analysis_add_month_1y.csv")
+res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
+                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
+                       CSk = CSk, L = 30, method = "add")
+write.csv(res.add, "analysis_add_month_1m.csv")
+res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
+                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
+                       CSk = CSk, L = 90, method = "add")
+write.csv(res.add, "analysis_add_month_3m.csv")
+res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
+                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
+                       CSk = CSk, L = 180, method = "add")
+write.csv(res.add, "analysis_add_month_6m.csv")
 
 # weekly
 # CSk <- sum.dts["Min."] + (1:floor((sum.dts["Max."]-sum.dts["Min."]-365)/7)) * 7
