@@ -12,7 +12,7 @@ sum.dts <- summary(c(hist1$dt1, hist1$dt2))
 ##########################
 
 # effect estimates and confidence interval
-res <- read.csv("analysis_add_month_3m_Sik.csv", row.names = 1)
+res <- read.csv("analysis_add_month_3m.csv", row.names = 1)
 res <- res[-grep("region", rownames(res)), ]
 res.TI <- res[1:17, ]
 res.TV <- res[18:26, ]
@@ -26,7 +26,7 @@ res$covariate <- c("Age/5 (years)", "Sex (female)", "Diabetes (yes)",
                    "Functional status", "Working for income")
 res$covariate <- factor(res$covariate, levels = unique(res$covariate))
 res$signif <- ifelse(res$p < 0.001, "***", ifelse(res$p < 0.01, "**", ifelse(res$p < 0.05, "*", "")))
-png(file = "effect_size_3m_TI_Sik.png", width = 12, height = 15, units = "cm", res = 1200)
+png(file = "effect_size_3m_TI.png", width = 12, height = 15, units = "cm", res = 1200)
 ggplot(data = res, aes(x = betahat, y = covariate)) + 
   geom_point() + 
   geom_errorbar(aes(xmin = betahat - 1.96 * se, xmax = betahat + 1.96 * se), width = 0) + 
