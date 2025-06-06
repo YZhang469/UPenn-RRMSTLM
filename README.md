@@ -1,1 +1,1 @@
-# Programming Scripts for "Dynamic Risk Assessment by Landmark Modeling of the Restricted Mean Survival Time"
+# Programming Scripts for "Dynamic Risk Assessment by Landmark Modeling of the Restricted Residual Mean Survival Time"
