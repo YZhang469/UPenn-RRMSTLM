@@ -165,6 +165,34 @@ analyzeData <- function(dat = study0, datA = hist1,
 
 sum.dts <- summary(c(hist1$dt1, hist1$dt2))
 
+# annually
+CSk <- as.Date(paste0("12/31/", 2010:(2010+floor((sum.dts["Max."]-sum.dts["Min."]+1)/365)-1-1)), format = "%m/%d/%Y") - 
+  as.Date("01/01/1960", format = "%m/%d/%Y")
+res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
+                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
+                       CSk = CSk, L = 90, method = "add")
+write.csv(res.add, "analysis_add_annual_3m.csv")
+
+# semiannually
+day <- c("6/30/", "12/31/")
+year <- 2010:(2010+floor((sum.dts["Max."]-sum.dts["Min."]+1)/365)-1-1)
+CSk <- as.Date(do.call(paste0, expand.grid(day, year)), format = "%m/%d/%Y") - 
+  as.Date("01/01/1960", format = "%m/%d/%Y")
+res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
+                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
+                       CSk = CSk, L = 90, method = "add")
+write.csv(res.add, "analysis_add_semi_3m.csv")
+
+# quarterly
+day <- c("3/31/", "6/30/", "9/30/", "12/31/")
+year <- 2010:(2010+floor((sum.dts["Max."]-sum.dts["Min."]+1)/365)-1-1)
+CSk <- as.Date(do.call(paste0, expand.grid(day, year)), format = "%m/%d/%Y") - 
+  as.Date("01/01/1960", format = "%m/%d/%Y")
+res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
+                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
+                       CSk = CSk, L = 90, method = "add")
+write.csv(res.add, "analysis_add_quarter_3m.csv")
+
 # monthly
 day <- c("1/31/", "2/28/", "3/31/", "4/30/", "5/31/", "6/30/", "7/31/", "8/31/", "9/30/", "10/31/", "11/30/", "12/31/")
 year <- 2010:(2010+floor((sum.dts["Max."]-sum.dts["Min."]+1)/365)-1-1)
@@ -172,49 +200,13 @@ CSk <- as.Date(do.call(paste0, expand.grid(day, year)), format = "%m/%d/%Y") -
   as.Date("01/01/1960", format = "%m/%d/%Y")
 res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
                        ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-                       CSk = CSk, L = 30, method = "add")
-write.csv(res.add, "analysis_add_month_1m.csv")
-res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
                        CSk = CSk, L = 90, method = "add")
 write.csv(res.add, "analysis_add_month_3m.csv")
-res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-                       CSk = CSk, L = 180, method = "add")
-write.csv(res.add, "analysis_add_month_6m.csv")
-res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-                       CSk = CSk, L = 1*365, method = "add")
-write.csv(res.add, "analysis_add_month_1y.csv")
 
 # weekly
 # CSk <- sum.dts["Min."] + (1:floor((sum.dts["Max."]-sum.dts["Min."]-365)/7)) * 7
 CSk <- sum.dts["Min."] + (1:520) * 7
 res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
                        ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-                       CSk = CSk, L = 30, method = "add")
-write.csv(res.add, "analysis_add_week_1m.csv")
-res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
                        CSk = CSk, L = 90, method = "add")
 write.csv(res.add, "analysis_add_week_3m.csv")
-res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-                       CSk = CSk, L = 180, method = "add")
-write.csv(res.add, "analysis_add_week_6m.csv")
-res.add <- analyzeData(dat = study0, datA = hist1, IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-                       CSk = CSk, L = 1*365, method = "add")
-write.csv(res.add, "analysis_add_week_1y.csv")
-
-# quarterly
-day <- c("3/31/", "6/30/", "9/30/", "12/31/")
-year <- 2010:(2010+floor((sum.dts["Max."]-sum.dts["Min."]+1)/365)-1-1)
-CSk <- as.Date(do.call(paste0, expand.grid(day, year)), format = "%m/%d/%Y") - 
-  as.Date("01/01/1960", format = "%m/%d/%Y")
-res.add <- analyzeData(dat = study0, datA = hist1, 
-                       IDname = "WL_ID_CODE", TrtInelname = "inactive", Ename = "dt_wl", 
-                       ZCnames = ZCnames, ZTnames.TI = ZTnames.TI, ZTnames.TV = ZTnames.TV, 
-                       Znames.TI = Znames.TI, Znames.TV = Znames.TV, 
-                       CSk = CSk, L = 90, method = "add")
-write.csv(res.add, "analysis_add_quarter.csv")
