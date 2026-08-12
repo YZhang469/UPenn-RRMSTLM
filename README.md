@@ -7,5 +7,6 @@ Code was written by Y. Zhang. Please address all questions or comments to yzhang
 This repository includes R programming scripts for generating the main results in the manuscript. It comprises two subfolders: simulation and application.
 
 ### Simulation
-The documents [sim_nph_add.R](https://github.com/YZhang469/UPenn-RRMSTLM/blob/main/simulation/sim_nph_add.r) and [sim_ph_add.R](https://github.com/YZhang469/UPenn-RRMSTLM/blob/main/simulation/sim_ph_add.r) produce Table 1 of the main manuscript.
+The documents [sim_nph_add.R](https://github.com/YZhang469/UPenn-RRMSTLM/blob/main/simulation/sim_nph_add.r) and [sim_ph_add.R](https://github.com/YZhang469/UPenn-RRMSTLM/blob/main/simulation/sim_ph_add.r) produce Table 1 of the main manuscript. The documents [sim_nph_multi.r](https://github.com/YZhang469/UPenn-RRMSTLM/blob/main/simulation/sim_nph_multi.r) and [sim_ph_multi.r](https://github.com/YZhang469/UPenn-RRMSTLM/blob/main/simulation/sim_ph_multi.r) produce Table 2.
+
 ### Application
