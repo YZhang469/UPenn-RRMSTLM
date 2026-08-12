@@ -1,4 +1,4 @@
-## Reproducible R code for "Dynamic Risk Assessment by Landmark Modeling of the Restricted Residual Mean Survival Time"
+## Reproducible Code for "Dynamic Risk Assessment by Landmark Modeling of the Restricted Residual Mean Survival Time"
 
 Authors: Y. Zhang and D. E. Schaubel
 
